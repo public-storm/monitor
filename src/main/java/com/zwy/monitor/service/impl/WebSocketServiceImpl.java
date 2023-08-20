@@ -79,11 +79,11 @@ public class WebSocketServiceImpl implements WebSocketService {
     /**
      * 单发消息
      */
-    public static void sendMessageToUser(String toUserId, String message) throws IOException {
+    public void sendMessageToUser(String toUserId, String message) throws IOException {
         if (WEB_SOCKET_MAP.containsKey(toUserId)) {
             WEB_SOCKET_MAP.get(toUserId).sendMessage(message);
         } else {
-            log.error("请求的 userId {} 不在该服务器上", toUserId);
+            log.warn("请求的 userId {} 不在该服务器上", toUserId);
         }
     }
 

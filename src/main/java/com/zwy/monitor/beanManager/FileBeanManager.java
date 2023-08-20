@@ -1,6 +1,8 @@
 package com.zwy.monitor.beanManager;
 
 import com.zwy.monitor.bean.dbBean.UserFile;
+import com.zwy.monitor.bean.dbBean.UserFileHistory;
+import com.zwy.monitor.web.response.FindHistoryFileResponse;
 import com.zwy.monitor.web.response.SelectFileResponse;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
@@ -23,5 +25,9 @@ public interface FileBeanManager {
      * @date 2022/5/18 0018 15:29
      */
     @Mapping(target = "name", expression = "java(com.zwy.monitor.util.DesensitizedUtil.decrypt(directory.getName()) + directory.getSuffix())")
+    @Mapping(target = "file", expression = "java(com.zwy.monitor.util.FileUtil.findFileType(directory.getFile(),directory.getSuffix()))")
     SelectFileResponse toFileResponse(UserFile directory);
+
+    @Mapping(target = "name", expression = "java(com.zwy.monitor.util.DesensitizedUtil.decrypt(bean.getName()) + bean.getSuffix())")
+    FindHistoryFileResponse toFindHistoryFileResponse(UserFileHistory bean);
 }

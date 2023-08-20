@@ -3,6 +3,7 @@ package com.zwy.monitor.controller;
 import com.zwy.monitor.aspect.ActionPoint;
 import com.zwy.monitor.common.Constants;
 import com.zwy.monitor.common.RestResult;
+import com.zwy.monitor.common.RestResultBuilder;
 import com.zwy.monitor.service.UserService;
 import com.zwy.monitor.web.request.UserRegisterRequest;
 import lombok.extern.slf4j.Slf4j;
@@ -31,9 +32,8 @@ public class UserController extends BaseController {
     }
 
 
-    @ActionPoint(reqType = 0, remark = Constants.FIND_USER)
     @GetMapping("/user")
     public RestResult findUser() {
-        return res(() -> RestResult.data(findUserModel()), "查询用户异常");
+        return res(() -> RestResultBuilder.success().data(findUserModel()), "查询用户异常");
     }
 }

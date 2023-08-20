@@ -1,15 +1,17 @@
 package com.zwy.monitor.service.impl;
 
 import cn.hutool.core.io.file.FileNameUtil;
-import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
+import com.baomidou.mybatisplus.extension.conditions.update.LambdaUpdateChainWrapper;
 import com.zwy.monitor.bean.dbBean.UserFile;
-import com.zwy.monitor.bean.FileMargeBean;
+import com.zwy.monitor.bean.dbBean.UserFileHistory;
 import com.zwy.monitor.common.Constants;
 import com.zwy.monitor.common.MyRuntimeException;
+import com.zwy.monitor.mapper.UserFileHistoryMapper;
 import com.zwy.monitor.mapper.UserFileMapper;
 import com.zwy.monitor.service.FileMargeService;
 import com.zwy.monitor.util.DesensitizedUtil;
 import com.zwy.monitor.util.FileUtil;
+import com.zwy.monitor.web.request.UploadSplitRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -39,19 +41,26 @@ public class FileMargeServiceImpl implements FileMargeService {
     @Resource
     private RedisTemplate<String, Object> redisTemplate;
 
+    @Resource
+    private UserFileHistoryMapper userFileHistoryMapper;
+    @Resource
+    private WebSocketServiceImpl webSocketService;
+
     @Async
     @Override
-    public void fileMarge(FileMargeBean bean) {
+    public void fileMarge(UploadSplitRequest req) {
         //文件合并
-        marge(bean.getId(), bean.getUserId(), bean.getFilename());
+        marge(req.getId(), req.getUserId());
         //数据库文件状态更新
-        updateFile(bean.getId());
+        updateFile(req.getId());
         // 修改根目录文件夹大小
-        changeDirSize(bean.getSuperId(), bean.getTotalSize());
+        changeDirSize(req.getSuperId(), req.getTotalSize(), true);
         // 修改redis状态
-        changeRedisStatus(bean.getUserId(), bean.getFilename(), bean.getSuperId());
+        changeRedisStatus(req.getUserId(), req.getFilename(), req.getSuperId());
         // 合并结束消息推送
-        sendWs(bean.getUserId());
+        sendWs(req.getUserId(), String.valueOf(req.getWebId()));
+        //添加历史记录
+        addHistory(req.getFilename(), req.getTotalSize(), req.getUserId());
     }
 
     /**
@@ -60,14 +69,13 @@ public class FileMargeServiceImpl implements FileMargeService {
      * @author zwy
      * @date 2022/6/14 0014 16:32
      */
-    private void marge(String id, String userId, String filename) {
-        log.debug("分片合并 {}", filename);
-        String chunkPath = FileUtil.chunkPath(path, userId, id);
-        File chunkDir = new File(chunkPath);
+    private void marge(String id, String userId) {
+        log.debug("分片合并 id {}", id);
+        File chunkDir = new File(FileUtil.chunkPath(path, userId, id));
         List<File> chunks = Arrays.stream(Objects.requireNonNull(chunkDir.listFiles()))
                 .sorted(Comparator.comparing(o -> Integer.valueOf(o.getName())))
                 .collect(Collectors.toList());
-        String filePath = chunkDir.getParent() + File.separator + DesensitizedUtil.encrypt(FileNameUtil.mainName(filename)) + Constants.POSTFIX;
+        String filePath = FileUtil.findFilePath(path, userId, id);
         log.debug("合并文件路径 {}", filePath);
         File mergeFile = new File(filePath);
         try (RandomAccessFile randomAccessFileWriter = new RandomAccessFile(mergeFile, "rw")) {
@@ -87,7 +95,7 @@ public class FileMargeServiceImpl implements FileMargeService {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        log.debug("合并结束 {}", filename);
+        log.debug("合并结束 id {}", id);
     }
 
     /**
@@ -96,7 +104,7 @@ public class FileMargeServiceImpl implements FileMargeService {
      * @author zwy
      * @date 2022/6/16 0016 9:39
      */
-    private void updateFile(String id) {
+    public void updateFile(String id) {
         UserFile userFile = UserFile.builder()
                 .id(id)
                 .status(1)
@@ -105,36 +113,32 @@ public class FileMargeServiceImpl implements FileMargeService {
     }
 
     /**
-     * 修改根目录文件夹大小
+     * 修改上级目录大小
      *
      * @param superId   上级文件id
-     * @param totalSize 文件大小
-     * @author zwy
-     * @date 2022/7/11 0011 13:56
+     * @param totalSize 修改量
+     * @param add       true 加  false 减
      */
-    private void changeDirSize(String superId, long totalSize) {
+    public void changeDirSize(String superId, long totalSize, boolean add) {
         if (!Objects.equals(Constants.R_DIRECTORY, superId)) {
-            String id = findSuperId(superId);
-            userFileMapper.update(UserFile.builder().size(totalSize).build(),
-                    new UpdateWrapper<UserFile>().eq("id", id));
+            List<String> ids = new ArrayList<>(4);
+            findSuperId(superId, ids);
+            new LambdaUpdateChainWrapper<>(userFileMapper)
+                    .in(UserFile::getId, ids)
+                    .setSql("size = size " + (add ? "+ " : "- ") + totalSize)
+                    .update();
         }
     }
 
-    /**
-     * 根目录文件id
-     *
-     * @param id 文件id
-     * @return java.lang.String
-     * @author zwy
-     * @date 2022/7/11 0011 13:56
-     */
-    private String findSuperId(String id) {
+
+    private void findSuperId(String id, List<String> result) {
         UserFile userFile = Optional.ofNullable(userFileMapper.selectById(id))
                 .orElseThrow(() -> new MyRuntimeException("未找到文件"));
-        if (Objects.equals(userFile.getSuperId(), Constants.R_DIRECTORY)) {
-            return userFile.getId();
-        } else {
-            return findSuperId(userFile.getSuperId());
+        if (Objects.equals(userFile.getFile(), 0)) {
+            result.add(userFile.getId());
+        }
+        if (!Objects.equals(userFile.getSuperId(), Constants.R_DIRECTORY)) {
+            findSuperId(userFile.getSuperId(), result);
         }
     }
 
@@ -144,16 +148,29 @@ public class FileMargeServiceImpl implements FileMargeService {
      * @author zwy
      * @date 2022/6/14 0014 16:33
      */
-    private void changeRedisStatus(String userId, String fileName, String superId) {
+    public void changeRedisStatus(String userId, String fileName, String superId) {
         String key = FileUtil.key(userId, fileName, superId, true);
         log.debug("redis 更新状态 key {}", key);
         redisTemplate.opsForValue().set(key, 1);
     }
 
-    private void sendWs(String userId) {
+    @Override
+    public void addHistory(String fileName, long size, String userId) {
+        UserFileHistory userFileHistory = new UserFileHistory();
+        userFileHistory.setName(DesensitizedUtil.encrypt(FileNameUtil.mainName(fileName)));
+        userFileHistory.setSize(size);
+        userFileHistory.setSuffix(Constants.EXT + FileNameUtil.extName(fileName));
+        userFileHistory.setUserId(userId);
+        String ext = Constants.EXT + FileNameUtil.extName(fileName);
+        log.info("ext {}", ext);
+        userFileHistory.setFileType(FileUtil.findFileType(1, ext));
+        userFileHistoryMapper.insert(userFileHistory);
+    }
+
+    private void sendWs(String userId, String msg) {
         log.info("合并结束 websocket消息推送 userId {}", userId);
         try {
-            WebSocketServiceImpl.sendMessageToUser(userId, "success");
+            webSocketService.sendMessageToUser(userId, msg);
         } catch (IOException e) {
             log.error("websocket 消息推送失败", e);
         }

@@ -1,6 +1,5 @@
 package com.zwy.monitor.web.request;
 
-import io.swagger.annotations.ApiModelProperty;
 import lombok.*;
 
 import javax.validation.constraints.NotBlank;
@@ -15,7 +14,7 @@ import javax.validation.constraints.NotBlank;
 @ToString
 @Builder
 public class DeleteDirectoryRequest {
-    @ApiModelProperty(value = "文件id", required = true)
     @NotBlank
     private String id;
+    private String userId;
 }

@@ -20,7 +20,6 @@ public class MyWebMvcConfigurer implements WebMvcConfigurer {
         registry.addInterceptor(myInterceptor).addPathPatterns("/**")
                 .excludePathPatterns(
                         "/login",
-                        "/register",
                         "/swagger-resources/**",
                         "/webjars/**",
                         "**/swagger-ui.html",

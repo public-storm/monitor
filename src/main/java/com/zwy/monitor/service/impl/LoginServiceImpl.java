@@ -3,13 +3,14 @@ package com.zwy.monitor.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.zwy.monitor.bean.dbBean.User;
 import com.zwy.monitor.beanManager.UserBeanManager;
-import com.zwy.monitor.web.request.UserLoginRequest;
 import com.zwy.monitor.common.ResponseEnum;
 import com.zwy.monitor.common.RestResult;
+import com.zwy.monitor.common.RestResultBuilder;
 import com.zwy.monitor.mapper.UserMapper;
 import com.zwy.monitor.service.LoginService;
 import com.zwy.monitor.util.PasswordUtil;
 import com.zwy.monitor.util.TokenUtil;
+import com.zwy.monitor.web.request.UserLoginRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
@@ -36,7 +37,6 @@ public class LoginServiceImpl implements LoginService {
 
     @Override
     public RestResult login(HttpServletRequest request, HttpServletResponse response, UserLoginRequest req) {
-        RestResult result = new RestResult();
         String password = PasswordUtil.generatePassword(req.getPassword());
         req.setPassword(password);
         User user = userMapper.selectOne(new QueryWrapper<User>().setEntity(UserBeanManager.INSTANCE.toUser(req)));
@@ -47,10 +47,9 @@ public class LoginServiceImpl implements LoginService {
             String token = TokenUtil.createToken(map, 1);
             redisTemplate.opsForValue().set(token, token, 7, TimeUnit.DAYS);
             response.setHeader(TokenUtil.TOKEN_SIGN, token);
-            ResponseEnum.LOGIN_SUCCESS.toResult(result,token);
+            return RestResultBuilder.success().data(token);
         } else {
-            ResponseEnum.USER_NOT_EXISTS.toResult(result);
+            return RestResultBuilder.code(ResponseEnum.USER_NOT_EXISTS);
         }
-        return result;
     }
 }

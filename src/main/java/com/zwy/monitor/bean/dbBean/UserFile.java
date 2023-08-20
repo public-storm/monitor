@@ -14,14 +14,12 @@ import lombok.*;
 public class UserFile {
     private String id;
     private String name;
-    private String path;
     private Integer file;
     private String superId;
     private String createTime;
     private String updateTime;
     private String userId;
     private Long size;
-    private Integer favorite;
     private String suffix;
     private Integer status;
 }

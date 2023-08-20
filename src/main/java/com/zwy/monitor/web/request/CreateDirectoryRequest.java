@@ -1,6 +1,5 @@
 package com.zwy.monitor.web.request;
 
-import io.swagger.annotations.ApiModelProperty;
 import lombok.*;
 
 import javax.validation.constraints.NotBlank;
@@ -15,11 +14,11 @@ import javax.validation.constraints.NotBlank;
 @ToString
 @Builder
 public class CreateDirectoryRequest {
-    @ApiModelProperty(value = "文件名", required = true)
     @NotBlank
     private String name;
 
-    @ApiModelProperty(value = "上级文件id 根目录:-1", required = true)
     @NotBlank
     private String superId;
+
+    private String userId;
 }

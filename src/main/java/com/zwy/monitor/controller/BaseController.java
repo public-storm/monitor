@@ -6,6 +6,7 @@ import cn.hutool.jwt.JWTPayload;
 import com.zwy.monitor.bean.UserModel;
 import com.zwy.monitor.common.Constants;
 import com.zwy.monitor.common.RestResult;
+import com.zwy.monitor.common.RestResultBuilder;
 import com.zwy.monitor.util.TokenUtil;
 import lombok.extern.slf4j.Slf4j;
 
@@ -33,15 +34,13 @@ public class BaseController {
      * @param msg      异常信息
      * @return Result
      */
-    protected RestResult res(Supplier<RestResult> supplier, String msg) {
-        RestResult result;
+    protected <T> RestResult<T> res(Supplier<RestResult<T>> supplier, String msg) {
         try {
-            result = supplier.get();
+            return supplier.get();
         } catch (Exception e) {
             log.error(msg, e);
-            result = RestResult.err(Constants.SERVER_ERROR_CODE, e.getMessage());
+            return RestResultBuilder.err(Constants.SERVER_ERROR_CODE, e.getMessage());
         }
-        return result;
     }
 
 

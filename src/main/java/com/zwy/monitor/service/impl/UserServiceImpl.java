@@ -2,11 +2,12 @@ package com.zwy.monitor.service.impl;
 
 import cn.hutool.core.util.IdUtil;
 import com.zwy.monitor.bean.dbBean.User;
-import com.zwy.monitor.web.request.UserRegisterRequest;
 import com.zwy.monitor.common.RestResult;
+import com.zwy.monitor.common.RestResultBuilder;
 import com.zwy.monitor.mapper.UserMapper;
 import com.zwy.monitor.service.UserService;
 import com.zwy.monitor.util.PasswordUtil;
+import com.zwy.monitor.web.request.UserRegisterRequest;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
@@ -29,6 +30,6 @@ public class UserServiceImpl implements UserService {
         user.setPassword(pwd);
         user.setRoleId("1");
         userMapper.insert(user);
-        return RestResult.success();
+        return RestResultBuilder.success();
     }
 }

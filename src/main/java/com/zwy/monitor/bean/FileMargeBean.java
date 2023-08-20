@@ -32,4 +32,8 @@ public class FileMargeBean {
      * 文件大小
      */
     private long totalSize;
+    /**
+     * 前端文件id
+     */
+    private long webId;
 }

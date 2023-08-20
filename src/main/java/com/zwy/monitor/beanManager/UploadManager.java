@@ -1,7 +1,7 @@
 package com.zwy.monitor.beanManager;
 
 import com.zwy.monitor.bean.SaveBean;
-import com.zwy.monitor.web.request.UploadRequest;
+import com.zwy.monitor.web.request.UploadSplitRequest;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.factory.Mappers;
@@ -24,5 +24,5 @@ public interface UploadManager {
      */
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "userId", ignore = true)
-    SaveBean toSaveBean(UploadRequest req);
+    SaveBean toSaveBean(UploadSplitRequest req);
 }

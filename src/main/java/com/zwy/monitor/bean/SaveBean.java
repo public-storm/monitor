@@ -45,4 +45,6 @@ public class SaveBean {
      * 文件id
      */
     private String id;
+
+    private Long webId;
 }

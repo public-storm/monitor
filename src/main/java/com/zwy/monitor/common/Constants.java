@@ -27,6 +27,9 @@ public class Constants {
      * action
      */
     public static final String LOGIN = "登录";
-    public static final String FIND_USER = "查询本用户";
     public static final String CREATE_USER = "创建用户";
+
+    public static final String LIMIT_ONE = "limit 1";
+
+    public static final String SUCCESS = "success";
 }
