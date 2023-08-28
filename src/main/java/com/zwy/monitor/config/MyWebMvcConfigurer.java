@@ -10,7 +10,7 @@ import javax.annotation.Resource;
  * @author zwy
  * @date 2022年04月13日 16:53
  */
-@Component
+//@Component
 public class MyWebMvcConfigurer implements WebMvcConfigurer {
     @Resource
     private MyInterceptor myInterceptor;
@@ -20,6 +20,8 @@ public class MyWebMvcConfigurer implements WebMvcConfigurer {
         registry.addInterceptor(myInterceptor).addPathPatterns("/**")
                 .excludePathPatterns(
                         "/login",
+                        "/video1",
+                        "/video2",
                         "/swagger-resources/**",
                         "/webjars/**",
                         "**/swagger-ui.html",

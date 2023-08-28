@@ -1,6 +1,7 @@
 package com.zwy.monitor;
 
-import com.zwy.monitor.util.TableInit;
+import cn.hutool.core.io.file.FileReader;
+import cn.hutool.core.text.CharSequenceUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationArguments;
@@ -11,7 +12,6 @@ import org.springframework.jdbc.core.JdbcTemplate;
 
 import javax.annotation.Resource;
 import java.io.File;
-import java.util.List;
 
 /**
  * @author zwy
@@ -50,13 +50,13 @@ public class AppStartup implements ApplicationRunner {
     }
 
     private void createTable() {
-        List<String> sqlList = TableInit.findSqlList();
-        if (!sqlList.isEmpty()) {
-            sqlList.forEach(sql -> {
-                if (!sql.isEmpty()) {
-                    jdbcTemplate.execute(sql);
-                }
-            });
+        FileReader fileReader = new FileReader("classpath:sql/init.sql");
+        String read = fileReader.readString();
+        String[] sqlArr = read.split(";");
+        for (String sql : sqlArr) {
+            if (CharSequenceUtil.isNotBlank(sql)) {
+                jdbcTemplate.execute(sql);
+            }
         }
     }
 }

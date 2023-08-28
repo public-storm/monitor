@@ -24,7 +24,7 @@ import java.util.concurrent.TimeUnit;
  * @author zwy
  * @date 2022年04月13日 16:56
  */
-@Component
+//@Component
 @Slf4j
 public class MyInterceptor implements HandlerInterceptor {
 

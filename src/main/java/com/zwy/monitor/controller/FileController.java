@@ -1,17 +1,27 @@
 package com.zwy.monitor.controller;
 
 import com.zwy.monitor.common.RestResult;
+import com.zwy.monitor.common.RestResultBuilder;
 import com.zwy.monitor.service.FileService;
+import com.zwy.monitor.util.FileUtil;
 import com.zwy.monitor.web.request.*;
 import com.zwy.monitor.web.response.CheckExistsResponse;
 import com.zwy.monitor.web.response.FindHistoryFileResponse;
 import com.zwy.monitor.web.response.SelectFileResponse;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.tomcat.util.http.fileupload.IOUtils;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
+import javax.servlet.http.HttpServletResponse;
 import javax.validation.Valid;
+import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.List;
 
 /**
@@ -26,6 +36,7 @@ public class FileController extends BaseController {
 
     /**
      * 检查文件上传
+     *
      * @param req com.zwy.monitor.web.request.CheckUploadRequest
      * @return RestResult<CheckExistsResponse>
      */
@@ -104,5 +115,54 @@ public class FileController extends BaseController {
     @DeleteMapping("/history")
     public RestResult<String> delAllHistoryFile() {
         return res(() -> fileService.delAllHistoryFile(findUserModel().getId()), "删除所有历史文件异常");
+    }
+
+    @GetMapping("/video1")
+    public void test(HttpServletResponse response) {
+        String path = "H:\\file\\6afb389dcc2a45479eb1677d9d8c9294\\f791d703d579470caa9b75e5a371db5c\\f791d703d579470caa9b75e5a371db5c.mp4";
+//        String path = "E:\\ali_download\\沙漠往事 Odnazhdy.v.pustyne.2022.1080P.中文字幕.mp4";
+//        String path = "E:\\edge_download\\f08e80da-bf1d-4e3d-8899-f0f6155f6efa.m3u8";
+        log.info("文件路径 {}", path);
+        InputStream is = null;
+        OutputStream os = null;
+        try {
+            response.setContentType("video/mp4");
+            File file = new File(path);
+            response.addHeader("Content-Length", "" + file.length());
+            is = Files.newInputStream(file.toPath());
+            os = response.getOutputStream();
+            IOUtils.copy(is, os);
+        } catch (Exception e) {
+            log.error("播放MP4失败", e);
+        } finally {
+            if (null != os) {
+                try {
+                    os.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+            if (is != null) {
+                try {
+                    is.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
+    @GetMapping("/video2")
+    public ResponseEntity<byte[]> test2() throws IOException {
+        String path = "H:\\file\\6afb389dcc2a45479eb1677d9d8c9294\\f791d703d579470caa9b75e5a371db5c\\f791d703d579470caa9b75e5a371db5c.mp4";
+//        File videoFile = new File(path);
+//        byte[] videoBytes = Files.readAllBytes(Paths.get(videoFile.getAbsolutePath()));
+//        return videoBytes;
+        File videoFile = new File(path);
+        byte[] videoBytes = Files.readAllBytes(Paths.get(videoFile.getAbsolutePath()));
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.parseMediaType("video/mp4"));
+        headers.setContentLength(videoBytes.length);
+        return new ResponseEntity<>(videoBytes, headers, HttpStatus.OK);
     }
 }
