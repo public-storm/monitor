@@ -155,9 +155,6 @@ public class FileController extends BaseController {
     @GetMapping("/video2")
     public ResponseEntity<byte[]> test2() throws IOException {
         String path = "H:\\file\\6afb389dcc2a45479eb1677d9d8c9294\\f791d703d579470caa9b75e5a371db5c\\f791d703d579470caa9b75e5a371db5c.mp4";
-//        File videoFile = new File(path);
-//        byte[] videoBytes = Files.readAllBytes(Paths.get(videoFile.getAbsolutePath()));
-//        return videoBytes;
         File videoFile = new File(path);
         byte[] videoBytes = Files.readAllBytes(Paths.get(videoFile.getAbsolutePath()));
         HttpHeaders headers = new HttpHeaders();
