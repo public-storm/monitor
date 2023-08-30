@@ -1,11 +1,13 @@
 package com.zwy.monitor.controller;
 
+import com.zwy.monitor.common.MyRuntimeException;
 import com.zwy.monitor.common.RestResult;
 import com.zwy.monitor.common.RestResultBuilder;
 import com.zwy.monitor.service.FileService;
 import com.zwy.monitor.util.FileUtil;
 import com.zwy.monitor.web.request.*;
 import com.zwy.monitor.web.response.CheckExistsResponse;
+import com.zwy.monitor.web.response.FilePlayResponse;
 import com.zwy.monitor.web.response.FindHistoryFileResponse;
 import com.zwy.monitor.web.response.SelectFileResponse;
 import lombok.extern.slf4j.Slf4j;
@@ -21,6 +23,7 @@ import javax.servlet.http.HttpServletResponse;
 import javax.validation.Valid;
 import java.io.*;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 
@@ -154,12 +157,85 @@ public class FileController extends BaseController {
 
     @GetMapping("/video2")
     public ResponseEntity<byte[]> test2() throws IOException {
-        String path = "H:\\file\\6afb389dcc2a45479eb1677d9d8c9294\\f791d703d579470caa9b75e5a371db5c\\f791d703d579470caa9b75e5a371db5c.mp4";
+//        String path = "H:\\file\\6afb389dcc2a45479eb1677d9d8c9294\\f791d703d579470caa9b75e5a371db5c\\f791d703d579470caa9b75e5a371db5c.mp4";
+        String path = "H:\\file\\t\\test.mp4";
+//        String path = "H:\\file\\t2\\沙漠往事.mp4";
+//        String path = "H:\\file\\t\\index.m3u8";
+        File videoFile = new File(path);
+        byte[] videoBytes = Files.readAllBytes(Paths.get(videoFile.getAbsolutePath()));
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.parseMediaType("video/mp4"));
+//        headers.setContentType(MediaType.parseMediaType("application/vnd.apple.mpegurl"));
+        headers.setContentLength(videoBytes.length);
+        return new ResponseEntity<>(videoBytes, headers, HttpStatus.OK);
+    }
+
+    @GetMapping("/video3/{path}")
+    public ResponseEntity<byte[]> test3(@PathVariable("path") String p) throws IOException {
+        String path = "H:\\file\\t\\" + p;
         File videoFile = new File(path);
         byte[] videoBytes = Files.readAllBytes(Paths.get(videoFile.getAbsolutePath()));
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.parseMediaType("video/mp4"));
         headers.setContentLength(videoBytes.length);
         return new ResponseEntity<>(videoBytes, headers, HttpStatus.OK);
+    }
+
+    @GetMapping("/video4")
+    public void test4(@RequestParam int index) {
+        long chunkSize = 1024 * 1024 * 5L;
+        String path = "H:\\file\\t\\test.mp4";
+        File file = new File(path);
+        long size = file.length();
+        long quotient = size / chunkSize;
+        long remainder = size % chunkSize;
+        if (remainder > 0) {
+            quotient++;
+        }
+        if (index > quotient || index <= 0) {
+            throw new MyRuntimeException("分片索引超出范围 " + index);
+        }
+        long endPosition = index * chunkSize;
+        long startPosition = endPosition - chunkSize;
+        try (RandomAccessFile raf = new RandomAccessFile(path, "r")) {
+            raf.seek(startPosition);
+            long bytesToRead = endPosition - startPosition + 1;
+            byte[] buffer = new byte[(int) bytesToRead];
+            raf.read(buffer);
+            FilePlayResponse res = new FilePlayResponse();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private final String mediaFolderPath = "H:\\file\\t";
+    @GetMapping(value = "/manifest", produces = MediaType.APPLICATION_XML_VALUE)
+    public ResponseEntity<byte[]> getManifest() {
+        String manifestPath = mediaFolderPath + "/t.mpd";
+        return getByteArrayResponse(manifestPath);
+    }
+
+    @GetMapping(value = "/segment/{segmentName:.+}", produces = MediaType.APPLICATION_OCTET_STREAM_VALUE)
+    public ResponseEntity<byte[]> getSegment(@PathVariable String segmentName) {
+        log.info("m4s 文件名 {}",segmentName);
+        String segmentPath = mediaFolderPath + "/" + segmentName;
+        log.info("m4s 文件路径 {}",segmentPath);
+        return getByteArrayResponse(segmentPath);
+    }
+
+    private ResponseEntity<byte[]> getByteArrayResponse(String filePath) {
+        Path path = Paths.get(filePath);
+        byte[] content;
+        try {
+            content = Files.readAllBytes(path);
+        } catch (IOException e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentLength(content.length);
+        return ResponseEntity.ok()
+                .headers(headers)
+                .body(content);
     }
 }
