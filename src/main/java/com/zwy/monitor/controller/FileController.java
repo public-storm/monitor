@@ -4,7 +4,6 @@ import com.zwy.monitor.common.MyRuntimeException;
 import com.zwy.monitor.common.RestResult;
 import com.zwy.monitor.common.RestResultBuilder;
 import com.zwy.monitor.service.FileService;
-import com.zwy.monitor.util.FileUtil;
 import com.zwy.monitor.web.request.*;
 import com.zwy.monitor.web.response.CheckExistsResponse;
 import com.zwy.monitor.web.response.FilePlayResponse;
@@ -16,6 +15,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
@@ -122,7 +122,8 @@ public class FileController extends BaseController {
 
     @GetMapping("/video1")
     public void test(HttpServletResponse response) {
-        String path = "H:\\file\\6afb389dcc2a45479eb1677d9d8c9294\\f791d703d579470caa9b75e5a371db5c\\f791d703d579470caa9b75e5a371db5c.mp4";
+//        String path = "H:\\file\\6afb389dcc2a45479eb1677d9d8c9294\\f791d703d579470caa9b75e5a371db5c\\f791d703d579470caa9b75e5a371db5c.mp4";
+        String path = "H:\\file\\t2\\沙漠往事.mp4";
 //        String path = "E:\\ali_download\\沙漠往事 Odnazhdy.v.pustyne.2022.1080P.中文字幕.mp4";
 //        String path = "E:\\edge_download\\f08e80da-bf1d-4e3d-8899-f0f6155f6efa.m3u8";
         log.info("文件路径 {}", path);
@@ -158,14 +159,14 @@ public class FileController extends BaseController {
     @GetMapping("/video2")
     public ResponseEntity<byte[]> test2() throws IOException {
 //        String path = "H:\\file\\6afb389dcc2a45479eb1677d9d8c9294\\f791d703d579470caa9b75e5a371db5c\\f791d703d579470caa9b75e5a371db5c.mp4";
-        String path = "H:\\file\\t\\test.mp4";
+//        String path = "H:\\file\\t\\test.mp4";
 //        String path = "H:\\file\\t2\\沙漠往事.mp4";
-//        String path = "H:\\file\\t\\index.m3u8";
+        String path = "H:\\file\\t2\\test.mpd";
         File videoFile = new File(path);
         byte[] videoBytes = Files.readAllBytes(Paths.get(videoFile.getAbsolutePath()));
         HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.parseMediaType("video/mp4"));
-//        headers.setContentType(MediaType.parseMediaType("application/vnd.apple.mpegurl"));
+//        headers.setContentType(MediaType.parseMediaType("video/mp4"));
+        headers.setContentType(MediaType.parseMediaType("application/vnd.apple.mpegurl"));
         headers.setContentLength(videoBytes.length);
         return new ResponseEntity<>(videoBytes, headers, HttpStatus.OK);
     }
@@ -182,7 +183,7 @@ public class FileController extends BaseController {
     }
 
     @GetMapping("/video4")
-    public void test4(@RequestParam int index) {
+    public ResponseEntity<byte[]> test4(@RequestParam Long index) {
         long chunkSize = 1024 * 1024 * 5L;
         String path = "H:\\file\\t\\test.mp4";
         File file = new File(path);
@@ -199,27 +200,32 @@ public class FileController extends BaseController {
         long startPosition = endPosition - chunkSize;
         try (RandomAccessFile raf = new RandomAccessFile(path, "r")) {
             raf.seek(startPosition);
-            long bytesToRead = endPosition - startPosition + 1;
-            byte[] buffer = new byte[(int) bytesToRead];
+            byte[] buffer = new byte[(int) chunkSize];
             raf.read(buffer);
-            FilePlayResponse res = new FilePlayResponse();
+            MultiValueMap<String, String> headers = new HttpHeaders();
+            headers.add("chunkSize",String.valueOf(headers));
+            headers.add("chunkIndex",String.valueOf(index));
+            return new ResponseEntity<>(buffer,headers,HttpStatus.OK);
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("分片文件读取异常", e);
+            return null;
         }
     }
 
     private final String mediaFolderPath = "H:\\file\\t";
+
     @GetMapping(value = "/manifest", produces = MediaType.APPLICATION_XML_VALUE)
     public ResponseEntity<byte[]> getManifest() {
         String manifestPath = mediaFolderPath + "/t.mpd";
+        log.info("manifest 接口文件路径 {}", manifestPath);
         return getByteArrayResponse(manifestPath);
     }
 
-    @GetMapping(value = "/segment/{segmentName:.+}", produces = MediaType.APPLICATION_OCTET_STREAM_VALUE)
+    @GetMapping(value = "/{segmentName:.+}", produces = MediaType.APPLICATION_OCTET_STREAM_VALUE)
     public ResponseEntity<byte[]> getSegment(@PathVariable String segmentName) {
-        log.info("m4s 文件名 {}",segmentName);
+        log.info("m4s 文件名 {}", segmentName);
         String segmentPath = mediaFolderPath + "/" + segmentName;
-        log.info("m4s 文件路径 {}",segmentPath);
+        log.info("m4s 文件路径 {}", segmentPath);
         return getByteArrayResponse(segmentPath);
     }
 
