@@ -200,6 +200,7 @@ public class FileServiceImpl implements FileService {
                 .superId(req.getSuperId())
                 .userId(req.getUserId())
                 .size(0L)
+                .status(1)
                 .suffix("")
                 .build();
         userFileMapper.insert(file);

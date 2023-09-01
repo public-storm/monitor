@@ -182,17 +182,13 @@ public class FileController extends BaseController {
         return new ResponseEntity<>(videoBytes, headers, HttpStatus.OK);
     }
 
+
     @GetMapping("/video4")
     public ResponseEntity<byte[]> test4(@RequestParam Long index) {
         long chunkSize = 1024 * 1024 * 5L;
-        String path = "H:\\file\\t\\test.mp4";
-        File file = new File(path);
-        long size = file.length();
-        long quotient = size / chunkSize;
-        long remainder = size % chunkSize;
-        if (remainder > 0) {
-            quotient++;
-        }
+//        String path = "H:\\file\\t\\test.mp4";
+        String path = "H:\\file\\t2\\沙漠往事.mp4";
+        long quotient = findChunkSize(path, chunkSize);
         if (index > quotient || index <= 0) {
             throw new MyRuntimeException("分片索引超出范围 " + index);
         }
@@ -202,14 +198,30 @@ public class FileController extends BaseController {
             raf.seek(startPosition);
             byte[] buffer = new byte[(int) chunkSize];
             raf.read(buffer);
-            MultiValueMap<String, String> headers = new HttpHeaders();
-            headers.add("chunkSize",String.valueOf(headers));
-            headers.add("chunkIndex",String.valueOf(index));
-            return new ResponseEntity<>(buffer,headers,HttpStatus.OK);
+            return new ResponseEntity<>(buffer, HttpStatus.OK);
         } catch (Exception e) {
             log.error("分片文件读取异常", e);
             return null;
         }
+    }
+
+    @GetMapping("/video5")
+    public RestResult<Long> test5() {
+        long chunkSize = 1024 * 1024 * 5L;
+//        String path = "H:\\file\\t\\test.mp4";
+        String path = "H:\\file\\t2\\沙漠往事.mp4";
+        return RestResultBuilder.<Long>success().data(findChunkSize(path, chunkSize));
+    }
+
+    private long findChunkSize(String path, long chunkSize) {
+        File file = new File(path);
+        long size = file.length();
+        long quotient = size / chunkSize;
+        long remainder = size % chunkSize;
+        if (remainder > 0) {
+            quotient++;
+        }
+        return quotient;
     }
 
     private final String mediaFolderPath = "H:\\file\\t";

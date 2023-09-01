@@ -36,7 +36,7 @@ CREATE TABLE if not exists `user_file` (
                              `user_id` varchar(32) NOT NULL COMMENT '用户id',
                              `size` bigint NOT NULL DEFAULT '0' COMMENT '文件大小',
                              `suffix` varchar(50) DEFAULT NULL COMMENT '文件后缀',
-                             `status` int NOT NULL DEFAULT '0' COMMENT '文件状态 默认 1',
+                             `status` int NOT NULL DEFAULT '0' COMMENT '文件状态 默认 0',
                              `create_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
                              `update_time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
                              PRIMARY KEY (`id`)
