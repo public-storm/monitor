@@ -4,8 +4,10 @@ package com.zwy.monitor.service;
 import com.zwy.monitor.common.RestResult;
 import com.zwy.monitor.web.request.*;
 import com.zwy.monitor.web.response.CheckExistsResponse;
+import com.zwy.monitor.web.response.FindDownloadChunkResponse;
 import com.zwy.monitor.web.response.FindHistoryFileResponse;
 import com.zwy.monitor.web.response.SelectFileResponse;
+import org.springframework.http.ResponseEntity;
 
 import javax.servlet.http.HttpServletResponse;
 import java.util.List;
@@ -42,5 +44,9 @@ public interface FileService {
     RestResult<List<FindHistoryFileResponse>> findHistoryFile(String userId);
 
     RestResult<String> delAllHistoryFile(String userId);
+
+    RestResult<FindDownloadChunkResponse> findDownloadChunk(FindDownloadChunkRequest req);
+
+    ResponseEntity<byte[]> download(DownloadRequest req);
 
 }

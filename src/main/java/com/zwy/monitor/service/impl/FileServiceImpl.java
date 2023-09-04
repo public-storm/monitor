@@ -18,20 +18,20 @@ import com.zwy.monitor.util.DesensitizedUtil;
 import com.zwy.monitor.util.FileUtil;
 import com.zwy.monitor.web.request.*;
 import com.zwy.monitor.web.response.CheckExistsResponse;
+import com.zwy.monitor.web.response.FindDownloadChunkResponse;
 import com.zwy.monitor.web.response.FindHistoryFileResponse;
 import com.zwy.monitor.web.response.SelectFileResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.tomcat.util.http.fileupload.IOUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletResponse;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.nio.file.Files;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -58,6 +58,8 @@ public class FileServiceImpl implements FileService {
     private FileMargeService fileMargeService;
     @Resource
     private UserFileHistoryMapper userFileHistoryMapper;
+
+    private static final long downloadChunkSize = 1024 * 1024 * 5L;
 
 
     @Override
@@ -241,11 +243,9 @@ public class FileServiceImpl implements FileService {
     @Override
     public RestResult<List<SelectFileResponse>> selectDirectory(SelectFileRequest req) {
         return RestResultBuilder.<List<SelectFileResponse>>success().data(new LambdaQueryChainWrapper<>(userFileMapper)
-                .eq(UserFile::getStatus, 1)
-                .or()
-                .eq(UserFile::getStatus, 2)
                 .eq(UserFile::getSuperId, req.getSuperId())
                 .eq(UserFile::getUserId, req.getUserId())
+                .in(UserFile::getStatus, 1, 2)
                 .orderByDesc(UserFile::getCreateTime)
                 .list()
                 .stream()
@@ -289,6 +289,54 @@ public class FileServiceImpl implements FileService {
                 .map(UserFileHistory::getId)
                 .collect(Collectors.toList()));
         return RestResultBuilder.success();
+    }
+
+
+    @Override
+    public RestResult<FindDownloadChunkResponse> findDownloadChunk(FindDownloadChunkRequest req) {
+        UserFile userFile = Optional.ofNullable(userFileMapper.selectById(req.getId()))
+                .orElseThrow(() -> new RuntimeException("文件id错误 " + req.getId()));
+        String filePath = FileUtil.findFilePath(path, userFile.getUserId(), userFile.getId());
+        long chunkTotal = findChunkSize(filePath, downloadChunkSize);
+        FindDownloadChunkResponse response = new FindDownloadChunkResponse();
+        response.setChunkTotal(chunkTotal);
+        response.setChunkSize(downloadChunkSize);
+        return RestResultBuilder.<FindDownloadChunkResponse>success().data(response);
+    }
+
+
+    @Override
+    public ResponseEntity<byte[]> download(DownloadRequest req) {
+        UserFile userFile = Optional.ofNullable(userFileMapper.selectById(req.getId()))
+                .orElseThrow(() -> new RuntimeException("文件id错误 " + req.getId()));
+        String filePath = FileUtil.findFilePath(path, userFile.getUserId(), userFile.getId());
+        long quotient = findChunkSize(path, downloadChunkSize);
+        long index = req.getIndex();
+        if (index > quotient || index <= 0) {
+            throw new MyRuntimeException("分片索引超出范围 " + index);
+        }
+        long endPosition = index * downloadChunkSize;
+        long startPosition = endPosition - downloadChunkSize;
+        try (RandomAccessFile raf = new RandomAccessFile(filePath, "r")) {
+            raf.seek(startPosition);
+            byte[] buffer = new byte[(int) downloadChunkSize];
+            raf.read(buffer);
+            return new ResponseEntity<>(buffer, HttpStatus.OK);
+        } catch (Exception e) {
+            log.error("分片文件读取异常", e);
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    private long findChunkSize(String path, long chunkSize) {
+        File file = new File(path);
+        long size = file.length();
+        long quotient = size / chunkSize;
+        long remainder = size % chunkSize;
+        if (remainder > 0) {
+            quotient++;
+        }
+        return quotient;
     }
 
     private void delFile(UserFile userFile) {

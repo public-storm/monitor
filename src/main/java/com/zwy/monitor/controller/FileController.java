@@ -1,21 +1,18 @@
 package com.zwy.monitor.controller;
 
+import com.zwy.monitor.common.Constants;
 import com.zwy.monitor.common.MyRuntimeException;
 import com.zwy.monitor.common.RestResult;
 import com.zwy.monitor.common.RestResultBuilder;
 import com.zwy.monitor.service.FileService;
 import com.zwy.monitor.web.request.*;
-import com.zwy.monitor.web.response.CheckExistsResponse;
-import com.zwy.monitor.web.response.FilePlayResponse;
-import com.zwy.monitor.web.response.FindHistoryFileResponse;
-import com.zwy.monitor.web.response.SelectFileResponse;
+import com.zwy.monitor.web.response.*;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.tomcat.util.http.fileupload.IOUtils;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
@@ -101,14 +98,6 @@ public class FileController extends BaseController {
         }, "文件删除异常");
     }
 
-    @PostMapping("/download")
-    public void download(@Valid @RequestBody DownloadRequest req) {
-        try {
-            fileService.download(req, response);
-        } catch (Exception e) {
-            log.error("文件下载异常", e);
-        }
-    }
 
     @GetMapping("/history")
     public RestResult<List<FindHistoryFileResponse>> findHistoryFile() {
@@ -118,6 +107,17 @@ public class FileController extends BaseController {
     @DeleteMapping("/history")
     public RestResult<String> delAllHistoryFile() {
         return res(() -> fileService.delAllHistoryFile(findUserModel().getId()), "删除所有历史文件异常");
+    }
+
+
+    @GetMapping("/download/chunk")
+    public RestResult<FindDownloadChunkResponse> findDownloadChunk(@Valid FindDownloadChunkRequest req) {
+        return res(() -> fileService.findDownloadChunk(req), "查询文件下载总分片数异常");
+    }
+
+    @GetMapping("/download")
+    public ResponseEntity<byte[]> download(@Valid DownloadRequest req) {
+        return fileService.download(req);
     }
 
     @GetMapping("/video1")
