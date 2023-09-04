@@ -310,10 +310,11 @@ public class FileServiceImpl implements FileService {
         UserFile userFile = Optional.ofNullable(userFileMapper.selectById(req.getId()))
                 .orElseThrow(() -> new RuntimeException("文件id错误 " + req.getId()));
         String filePath = FileUtil.findFilePath(path, userFile.getUserId(), userFile.getId());
-        long quotient = findChunkSize(path, downloadChunkSize);
+        long quotient = findChunkSize(filePath, downloadChunkSize);
         long index = req.getIndex();
         if (index > quotient || index <= 0) {
-            throw new MyRuntimeException("分片索引超出范围 " + index);
+            log.warn("index {} quotient {}", index, quotient);
+            throw new MyRuntimeException("分片索引超出范围" );
         }
         long endPosition = index * downloadChunkSize;
         long startPosition = endPosition - downloadChunkSize;
