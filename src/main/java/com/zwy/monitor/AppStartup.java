@@ -23,15 +23,20 @@ public class AppStartup implements ApplicationRunner {
 
 
     @Value("${file.path}")
-    private String path;
+    private String filePath;
+
+    @Value("${video.path}")
+    private String videoPath;
 
     @Resource
     private JdbcTemplate jdbcTemplate;
 
     @Override
     public void run(ApplicationArguments args) {
-        //存储目录创建
-        createLocalPath(path);
+        //文件存储目录创建
+        createLocalPath(filePath);
+        //视频存储目录创建
+        createLocalPath(videoPath);
         //初始化表
         createTable();
     }

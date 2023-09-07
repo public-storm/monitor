@@ -1,16 +1,14 @@
 package com.zwy.monitor.controller;
 
-import com.zwy.monitor.common.Constants;
-import com.zwy.monitor.common.MyRuntimeException;
 import com.zwy.monitor.common.RestResult;
-import com.zwy.monitor.common.RestResultBuilder;
 import com.zwy.monitor.service.FileService;
 import com.zwy.monitor.web.request.*;
-import com.zwy.monitor.web.response.*;
+import com.zwy.monitor.web.response.CheckExistsResponse;
+import com.zwy.monitor.web.response.FindDownloadChunkResponse;
+import com.zwy.monitor.web.response.FindHistoryFileResponse;
+import com.zwy.monitor.web.response.SelectFileResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.tomcat.util.http.fileupload.IOUtils;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -18,10 +16,10 @@ import org.springframework.web.bind.annotation.*;
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletResponse;
 import javax.validation.Valid;
-import java.io.*;
+import java.io.File;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.List;
 
 /**
@@ -30,6 +28,7 @@ import java.util.List;
  */
 @RestController
 @Slf4j
+@RequestMapping("/file")
 public class FileController extends BaseController {
     @Resource
     FileService fileService;
@@ -120,4 +119,19 @@ public class FileController extends BaseController {
         return fileService.download(req);
     }
 
+
+    @GetMapping("/preview")
+    public void test(HttpServletResponse response, @RequestParam int index) {
+        String path = "H:\\file\\t2\\preview\\" + index + ".mp4";
+        response.setContentType("video/mp4");
+        File file = new File(path);
+        response.addHeader("Content-Length", String.valueOf(file.length()));
+        try (InputStream is = Files.newInputStream(file.toPath());
+             OutputStream os = response.getOutputStream();
+        ) {
+            IOUtils.copy(is, os);
+        } catch (Exception e) {
+            log.error("播放预览失败", e);
+        }
+    }
 }
