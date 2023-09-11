@@ -134,4 +134,18 @@ public class FileController extends BaseController {
             log.error("播放预览失败", e);
         }
     }
+
+    @GetMapping("/hls/{name}")
+    public void hls(HttpServletResponse response, @PathVariable("name") String name) {
+        log.info("hls 调用 name {}", name);
+        String path = "H:\\t2\\hls\\" + name;
+        File file = new File(path);
+        response.addHeader("Content-Length", String.valueOf(file.length()));
+        try (InputStream is = Files.newInputStream(file.toPath());
+             OutputStream os = response.getOutputStream();) {
+            IOUtils.copy(is, os);
+        } catch (Exception e) {
+            log.error("hls 获取异常", e);
+        }
+    }
 }
