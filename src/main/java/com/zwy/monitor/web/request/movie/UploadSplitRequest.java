@@ -1,4 +1,4 @@
-package com.zwy.monitor.web.request;
+package com.zwy.monitor.web.request.movie;
 
 import lombok.*;
 import lombok.extern.slf4j.Slf4j;
@@ -47,22 +47,16 @@ public class UploadSplitRequest {
     @NotBlank
     private String filename;
     /**
-     * 上级文件id
-     */
-    @NotBlank
-    private String superId;
-    /**
-     * 前端文件id
+     * 合并成功发送id
      */
     @NotNull
     private Long webId;
     /**
-     * 文件id
-     */
-    @NotBlank
-    private String id;
-    /**
      * 用户id
      */
     private String userId;
+    /**
+     * 文件id（内部使用）
+     */
+    private String id;
 }

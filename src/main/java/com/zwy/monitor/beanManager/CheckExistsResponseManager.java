@@ -1,7 +1,7 @@
 package com.zwy.monitor.beanManager;
 
 import com.zwy.monitor.bean.RedisFileBean;
-import com.zwy.monitor.web.response.CheckExistsResponse;
+import com.zwy.monitor.web.response.file.CheckExistsResponse;
 import org.mapstruct.Mapper;
 import org.mapstruct.factory.Mappers;
 

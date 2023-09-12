@@ -3,7 +3,10 @@ package com.zwy.monitor.controller;
 import com.zwy.monitor.common.RestResult;
 import com.zwy.monitor.service.FileService;
 import com.zwy.monitor.web.request.*;
-import com.zwy.monitor.web.response.CheckExistsResponse;
+import com.zwy.monitor.web.request.file.CheckUploadRequest;
+import com.zwy.monitor.web.request.file.RenameFileRequest;
+import com.zwy.monitor.web.request.file.UploadSplitRequest;
+import com.zwy.monitor.web.response.file.CheckExistsResponse;
 import com.zwy.monitor.web.response.FindDownloadChunkResponse;
 import com.zwy.monitor.web.response.FindHistoryFileResponse;
 import com.zwy.monitor.web.response.SelectFileResponse;
@@ -36,10 +39,10 @@ public class FileController extends BaseController {
     /**
      * 检查文件上传
      *
-     * @param req com.zwy.monitor.web.request.CheckUploadRequest
+     * @param req com.zwy.monitor.web.request.file.CheckUploadRequest
      * @return RestResult<CheckExistsResponse>
      */
-    @GetMapping("/upload")
+    @GetMapping("/upload/check")
     public RestResult<CheckExistsResponse> checkExists(@Valid CheckUploadRequest req) {
         return res(() -> {
             req.setUserId(findUserModel().getId());
@@ -48,7 +51,6 @@ public class FileController extends BaseController {
     }
 
     @PostMapping(value = "/upload/split", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-
     public RestResult<String> uploadSplit(@Valid UploadSplitRequest req) {
         return res(() -> {
             req.setUserId(findUserModel().getId());
@@ -142,7 +144,7 @@ public class FileController extends BaseController {
         File file = new File(path);
         response.addHeader("Content-Length", String.valueOf(file.length()));
         try (InputStream is = Files.newInputStream(file.toPath());
-             OutputStream os = response.getOutputStream();) {
+             OutputStream os = response.getOutputStream()) {
             IOUtils.copy(is, os);
         } catch (Exception e) {
             log.error("hls 获取异常", e);

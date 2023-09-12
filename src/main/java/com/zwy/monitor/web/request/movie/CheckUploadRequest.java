@@ -1,4 +1,4 @@
-package com.zwy.monitor.web.request;
+package com.zwy.monitor.web.request.movie;
 
 import lombok.*;
 
@@ -22,18 +22,6 @@ public class CheckUploadRequest {
      */
     @NotBlank
     private String filename;
-
-    /**
-     * 上级文件id
-     */
-    @NotBlank
-    private String superId;
-
-    /**
-     * 文件大小
-     */
-    @NotNull
-    private Long fileSize;
 
     private String userId;
 }

@@ -1,7 +1,7 @@
 package com.zwy.monitor.beanManager;
 
 import com.zwy.monitor.bean.SaveBean;
-import com.zwy.monitor.web.request.UploadSplitRequest;
+import com.zwy.monitor.web.request.file.UploadSplitRequest;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.factory.Mappers;

@@ -1,6 +1,6 @@
 package com.zwy.monitor.service;
 
-import com.zwy.monitor.web.request.UploadSplitRequest;
+import com.zwy.monitor.web.request.file.UploadSplitRequest;
 
 /**
  * @author zwy

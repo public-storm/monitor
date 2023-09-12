@@ -11,7 +11,7 @@ import com.zwy.monitor.mapper.UserFileMapper;
 import com.zwy.monitor.service.FileMargeService;
 import com.zwy.monitor.util.DesensitizedUtil;
 import com.zwy.monitor.util.FileUtil;
-import com.zwy.monitor.web.request.UploadSplitRequest;
+import com.zwy.monitor.web.request.file.UploadSplitRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;

@@ -22,7 +22,9 @@ public enum ResponseEnum {
     FIND_FAVORITE_SUCCESS("100012", "查询收藏成功"),
     RENAME_FILE_SUCCESS("100013","重命名成功"),
     RENAME_FILE_FAIL("100014","当前目录有该文件名"),
-    NOT_FIND_ID("100015","未找到文件id")
+    NOT_FIND_ID("100015","未找到文件id"),
+
+    HAS_UPLOAD("100016","已经上传")
     ;
     private final String code;
     private final String msg;
