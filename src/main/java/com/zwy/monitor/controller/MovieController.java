@@ -57,4 +57,6 @@ public class MovieController extends BaseController {
             return movieService.rename(req);
         }, "视频重命名异常");
     }
+
+
 }
