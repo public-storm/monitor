@@ -32,4 +32,14 @@ public class Constants {
     public static final String LIMIT_ONE = "limit 1";
 
     public static final String SUCCESS = "success";
+
+    /**
+     * hls
+     */
+    public static final String HLS_DIR = "hls";
+    public static final String HLS_KEY_NAME = "enc.key";
+    public static final String HLS_KEY_INFO_NAME = "enc.keyInfo";
+    public static final String HLS_OUT_NAME = "out.ts";
+    public static final String HLS_M3U8_NAME = "playList.m3u8";
+    public static final String HLS_URI_HTTP = "http";
 }

@@ -22,7 +22,7 @@ public class UserServiceImpl implements UserService {
     private UserMapper userMapper;
 
     @Override
-    public RestResult createUser(UserRegisterRequest req) {
+    public RestResult<String> createUser(UserRegisterRequest req) {
         String pwd = PasswordUtil.generatePassword(req.getPassword());
         User user = new User();
         user.setId(IdUtil.simpleUUID());

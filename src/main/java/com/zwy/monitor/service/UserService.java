@@ -14,5 +14,5 @@ public interface UserService {
      * @param req req
      * @return RestResult
      */
-    RestResult createUser(UserRegisterRequest req);
+    RestResult<String> createUser(UserRegisterRequest req);
 }

@@ -1,5 +1,6 @@
 package com.zwy.monitor.controller;
 
+import cn.hutool.core.text.CharSequenceUtil;
 import cn.hutool.json.JSONObject;
 import cn.hutool.jwt.JWT;
 import cn.hutool.jwt.JWTPayload;
@@ -47,6 +48,11 @@ public class BaseController {
     protected UserModel findUserModel() {
         UserModel userModel = new UserModel();
         String token = request.getHeader(TokenUtil.TOKEN_SIGN);
+        if (CharSequenceUtil.isBlank(token)) {
+            userModel.setId("");
+            userModel.setName("");
+            return userModel;
+        }
         JWT jwt = TokenUtil.parseToken(token);
         JWTPayload jwtPayload = jwt.getPayload();
         JSONObject jsonObject = jwtPayload.getClaimsJson();

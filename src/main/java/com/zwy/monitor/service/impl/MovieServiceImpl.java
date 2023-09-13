@@ -1,10 +1,18 @@
 package com.zwy.monitor.service.impl;
 
 import cn.hutool.core.io.file.FileNameUtil;
+import cn.hutool.core.text.CharSequenceUtil;
+import cn.hutool.core.util.HashUtil;
 import cn.hutool.core.util.IdUtil;
+import cn.hutool.json.JSONArray;
+import cn.hutool.json.JSONUtil;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.conditions.query.LambdaQueryChainWrapper;
 import com.baomidou.mybatisplus.extension.conditions.update.LambdaUpdateChainWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.zwy.monitor.bean.dbBean.UserMovie;
+import com.zwy.monitor.beanManager.UserMovieBeanManager;
 import com.zwy.monitor.common.*;
 import com.zwy.monitor.mapper.UserMovieMapper;
 import com.zwy.monitor.service.MovieMargeService;
@@ -12,10 +20,9 @@ import com.zwy.monitor.service.MovieService;
 import com.zwy.monitor.util.DesensitizedUtil;
 import com.zwy.monitor.util.FileUtil;
 import com.zwy.monitor.util.MovieUtil;
-import com.zwy.monitor.web.request.movie.CheckUploadRequest;
-import com.zwy.monitor.web.request.movie.RenameMovieRequest;
-import com.zwy.monitor.web.request.movie.UploadSplitRequest;
+import com.zwy.monitor.web.request.movie.*;
 import com.zwy.monitor.web.response.movie.CheckExistsResponse;
+import com.zwy.monitor.web.response.movie.FindUserMovieResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.tomcat.util.http.fileupload.IOUtils;
 import org.springframework.beans.factory.annotation.Value;
@@ -24,13 +31,14 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.annotation.Resource;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import javax.servlet.http.HttpServletResponse;
+import java.io.*;
+import java.nio.file.Files;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * @author zwy
@@ -89,12 +97,13 @@ public class MovieServiceImpl implements MovieService {
     public RestResult<String> rename(RenameMovieRequest req) {
         String id = req.getId();
         String fileName = req.getName();
-        String encryptFileName = DesensitizedUtil.encrypt(fileName);
+        String title = FileNameUtil.mainName(fileName);
+        String encryptTitleName = DesensitizedUtil.encrypt(title);
         String userId = req.getUserId();
         UserMovie oldUserMovie = Optional.ofNullable(userMovieMapper.selectById(id))
                 .orElseThrow(() -> new MyRuntimeException("未找到id " + id));
         int sameNameNum = new LambdaQueryChainWrapper<>(userMovieMapper)
-                .eq(UserMovie::getName, encryptFileName)
+                .eq(UserMovie::getName, encryptTitleName)
                 .eq(UserMovie::getUserId, userId)
                 .count();
         if (sameNameNum != 0) {
@@ -103,10 +112,11 @@ public class MovieServiceImpl implements MovieService {
             //数据库修改
             new LambdaUpdateChainWrapper<>(userMovieMapper)
                     .eq(UserMovie::getId, id)
-                    .set(UserMovie::getName, encryptFileName)
+                    .set(UserMovie::getName, encryptTitleName)
                     .update();
             //redis修改
-            String decryptFileName = DesensitizedUtil.decrypt(oldUserMovie.getName());
+            String decryptTitleName = DesensitizedUtil.decrypt(oldUserMovie.getName());
+            String decryptFileName = decryptTitleName + oldUserMovie.getSuffix();
             String oldKey = MovieUtil.key(req.getUserId(), decryptFileName);
             String oldChunkKey = FileUtil.chunkKey(oldKey);
             String newKey = MovieUtil.key(req.getUserId(), req.getName());
@@ -115,6 +125,71 @@ public class MovieServiceImpl implements MovieService {
             redisTemplate.rename(oldChunkKey, newChunkKey);
         }
         return RestResultBuilder.success();
+    }
+
+    @Override
+    public RestResult<PageInfo> findPage(FindUserMovieRequest req) {
+        PageInfo pageInfo = new PageInfo();
+        IPage<UserMovie> page = userMovieMapper.selectPage(new Page<>(req.getPageNum(), req.getPageSize()),
+                new LambdaQueryWrapper<UserMovie>()
+                        .eq(CharSequenceUtil.isNotBlank(req.getName()), UserMovie::getName, req.getName())
+                        .eq(CharSequenceUtil.isNotBlank(req.getHashTag()), UserMovie::getHashTag, req.getHashTag())
+                        .eq(UserMovie::getUserId, req.getUserId())
+        );
+        pageInfo.setTotal(page.getTotal());
+        pageInfo.setList(page.getRecords()
+                .stream()
+                .map(UserMovieBeanManager.INSTANCE::toFindUserMovieResponse).collect(Collectors.toList()));
+        return RestResultBuilder.<PageInfo>success().data(pageInfo);
+    }
+
+
+    @Override
+    public RestResult<String> updateTag(UpdateTagRequest req) {
+        String id = req.getId();
+        String userId = req.getUserId();
+        String tag = req.getTag();
+        UserMovie userMovie = Optional.ofNullable(userMovieMapper.selectById(id))
+                .orElseThrow(() -> new MyRuntimeException("视频id错误 " + id));
+        if (!Objects.equals(userMovie.getUserId(), userId)) {
+            throw new MyRuntimeException("视频id与用户不匹配 id " + id + " userId " + userId);
+        }
+        String hashTag = null;
+        if (CharSequenceUtil.isNotBlank(tag)) {
+            hashTag = String.valueOf(HashUtil.fnvHash(tag));
+        }
+        new LambdaUpdateChainWrapper<>(userMovieMapper)
+                .eq(UserMovie::getId, id)
+                .set(UserMovie::getTag, tag)
+                .set(UserMovie::getHashTag, hashTag)
+                .update();
+        return RestResultBuilder.success();
+    }
+
+    @Override
+    public void findHls(String id, String fileName, HttpServletResponse response) {
+        String userMovieJson = (String) redisTemplate.opsForValue().get(id);
+        UserMovie userMovie;
+        if (CharSequenceUtil.isBlank(userMovieJson)) {
+            userMovie = Optional.ofNullable(userMovieMapper.selectById(id))
+                    .orElseThrow(() -> new MyRuntimeException("视频id错误 " + id));
+            String jsonStr = JSONUtil.toJsonStr(userMovie);
+            redisTemplate.opsForValue().set(id, jsonStr);
+        } else {
+            userMovie = JSONUtil.toBean(userMovieJson, UserMovie.class);
+        }
+        String userId = userMovie.getUserId();
+        String suffix = userMovie.getSuffix();
+        String hlsDir = MovieUtil.findHlsDirPath(videoPath, userId, id, suffix);
+        String filePath = hlsDir + File.separator + fileName;
+        File file = new File(filePath);
+        response.addHeader("Content-Length", String.valueOf(file.length()));
+        try (InputStream is = Files.newInputStream(file.toPath());
+             OutputStream os = response.getOutputStream()) {
+            IOUtils.copy(is, os);
+        } catch (Exception e) {
+            log.error("hls 获取异常", e);
+        }
     }
 
     /**
@@ -129,11 +204,12 @@ public class MovieServiceImpl implements MovieService {
         Integer chunkNum = req.getChunkNumber();
         Integer totalChunkNum = req.getTotalChunks();
         String fileName = req.getFilename();
-        String encryptFileName = DesensitizedUtil.encrypt(fileName);
+        String title = FileNameUtil.mainName(fileName);
+        String encryptTitleName = DesensitizedUtil.encrypt(title);
         String suffix = Constants.EXT + FileNameUtil.getSuffix(fileName);
         String id;
         UserMovie userMovie = new LambdaQueryChainWrapper<>(userMovieMapper)
-                .eq(UserMovie::getName, encryptFileName)
+                .eq(UserMovie::getName, encryptTitleName)
                 .eq(UserMovie::getUserId, userId)
                 .last(Constants.LIMIT_ONE)
                 .one();
@@ -141,7 +217,7 @@ public class MovieServiceImpl implements MovieService {
             id = IdUtil.simpleUUID();
             UserMovie newUserMovie = new UserMovie();
             newUserMovie.setId(id);
-            newUserMovie.setName(encryptFileName);
+            newUserMovie.setName(encryptTitleName);
             newUserMovie.setSize(req.getTotalSize());
             newUserMovie.setSuffix(suffix);
             newUserMovie.setUserId(userId);

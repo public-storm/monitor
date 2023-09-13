@@ -1,4 +1,4 @@
-package com.zwy.monitor.bean.dbBean;
+package com.zwy.monitor.web.response.movie;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -6,21 +6,34 @@ import lombok.NoArgsConstructor;
 
 /**
  * @author zwy
- * @date 2023/9/12 16:10
+ * @date 2023/9/13 9:51
  */
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class UserMovie {
+public class FindUserMovieResponse {
+    /**
+     * id
+     */
     private String id;
+    /**
+     * 名称
+     */
     private String name;
+    /**
+     * 大小
+     */
     private Long size;
-    private String suffix;
-    private String userId;
+    /**
+     * 状态
+     */
     private Integer status;
+    /**
+     * 创建时间
+     */
     private String createTime;
-    private String updateTime;
-    private String tag;
-    private String hashTag;
+    /**
+     * m3u8 访问url
+     */
     private String m3u8Url;
 }

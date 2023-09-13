@@ -9,6 +9,7 @@ import com.zwy.monitor.common.Constants;
 import com.zwy.monitor.mapper.UserMovieMapper;
 import com.zwy.monitor.service.MovieMargeService;
 import com.zwy.monitor.service.WebSocketService;
+import com.zwy.monitor.util.DesensitizedUtil;
 import com.zwy.monitor.util.FileUtil;
 import com.zwy.monitor.util.MovieUtil;
 import com.zwy.monitor.web.request.movie.UploadSplitRequest;
@@ -56,9 +57,9 @@ public class MovieMargeServiceImpl implements MovieMargeService {
         log.info("文件合并 {}", fileName);
         String suffix = Constants.EXT + FileNameUtil.getSuffix(fileName);
         //文件合并
-        String filePath = marge(id, userId, suffix);
+        marge(id, userId, suffix);
         //生成hls
-        hls(filePath, 3, ip, port, url);
+        hls(id, userId, suffix, 3, ip, port, url);
         //修改数据库状态
         updateMovieStatus(id, 1);
         //修改redis状态
@@ -96,7 +97,7 @@ public class MovieMargeServiceImpl implements MovieMargeService {
      * @param suffix 文件后缀
      * @return string path 合并文件路径
      */
-    private String marge(String id, String userId, String suffix) {
+    private void marge(String id, String userId, String suffix) {
         log.info("分片合并 id {} userId {}", id, userId);
         File chunkDir = new File(MovieUtil.chunkPath(videoPath, userId, id));
         List<File> chunks = Arrays.stream(Objects.requireNonNull(chunkDir.listFiles()))
@@ -123,30 +124,33 @@ public class MovieMargeServiceImpl implements MovieMargeService {
             e.printStackTrace();
         }
         log.info("合并结束 id {}", id);
-        return filePath;
     }
 
     /**
      * 生成hls文件
      *
-     * @param filePath 输入视频文件地址
-     * @param time     分割时间
-     * @param ip       访问ip
-     * @param port     端口
-     * @param url      访问url
+     * @param userId 用户id
+     * @param id     文件id
+     * @param suffix 文件后缀
+     * @param time   分割时间
+     * @param ip     访问ip
+     * @param port   服务端口
+     * @param url    访问url
      */
-    private void hls(String filePath, int time, String ip, String port, String url) {
+    private void hls(String userId, String id, String suffix, int time, String ip, String port, String url) {
+        String filePath = MovieUtil.findFilePath(videoPath, userId, id, suffix);
         checkFilePath(filePath);
-        String dirPath = filePath.substring(0, filePath.lastIndexOf(File.separator) + 1) + "hls";
-        String keyPath = dirPath + File.separator + "enc.key";
+        String dirPath = MovieUtil.findHlsDirPath(videoPath, userId, id, suffix);
+        String keyPath = dirPath + File.separator + Constants.HLS_KEY_NAME;
         String createKeyCmd = "openssl rand -out " + keyPath + " 16";
         String createIvCmd = "openssl rand -hex 16";
-        String uri = "http://" + ip + ":" + port + url + "/enc.key";
-        String keyInfoPath = dirPath + File.separator + "enc.keyInfo";
-        String outPath = dirPath + File.separator + "out.ts";
+        String uri = Constants.HLS_URI_HTTP + "://" + ip + ":" + port + url + "/" +
+                id + "/" + Constants.HLS_KEY_NAME;
+        String keyInfoPath = dirPath + File.separator + Constants.HLS_KEY_INFO_NAME;
+        String outPath = dirPath + File.separator + Constants.HLS_OUT_NAME;
         String createOutTsCmd = "ffmpeg -y -i " + filePath + " -vcodec copy -acodec copy -vbsf h264_mp4toannexb " + outPath;
         String tsPath = dirPath + File.separator + "file%d.ts";
-        String m3u8Path = dirPath + File.separator + "playlist.m3u8";
+        String m3u8Path = dirPath + File.separator + Constants.HLS_M3U8_NAME;
         String chunkTsCmd = "ffmpeg -y -i " + outPath + " -c copy -f hls -hls_time " + time + " -hls_list_size 0 -hls_key_info_file "
                 + keyInfoPath + " -hls_playlist_type vod -hls_segment_filename " + tsPath + " " + m3u8Path;
         if (createDir(dirPath)) {
@@ -191,7 +195,7 @@ public class MovieMargeServiceImpl implements MovieMargeService {
     }
 
     /**
-     * 创建keyinfo文件
+     * 创建keyInfo文件
      *
      * @param uri         访问uri
      * @param iv          iv

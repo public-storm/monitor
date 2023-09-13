@@ -74,4 +74,18 @@ public class MovieUtil {
     public static String findFilePath(String path, String userId, String id, String suffix) {
         return findPath(path, userId, id) + File.separator + id + suffix;
     }
+
+    /**
+     * 获取hls文件路径
+     *
+     * @param path   视频文件存放路径
+     * @param userId 用户id
+     * @param id     文件id
+     * @param suffix 文件后缀
+     * @return path
+     */
+    public static String findHlsDirPath(String path, String userId, String id, String suffix) {
+        String filePath = findFilePath(path, userId, id, suffix);
+        return filePath.substring(0, filePath.lastIndexOf(File.separator) + 1) + Constants.HLS_DIR;
+    }
 }

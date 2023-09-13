@@ -1,6 +1,8 @@
 package com.zwy.monitor.controller;
 
 import com.zwy.monitor.aspect.ActionPoint;
+import com.zwy.monitor.bean.UserModel;
+import com.zwy.monitor.bean.dbBean.UserMovie;
 import com.zwy.monitor.common.Constants;
 import com.zwy.monitor.common.RestResult;
 import com.zwy.monitor.common.RestResultBuilder;
@@ -27,13 +29,13 @@ public class UserController extends BaseController {
 
     @ActionPoint(reqType = 1, remark = Constants.CREATE_USER)
     @PostMapping("/register")
-    public RestResult userRegister(@Valid @RequestBody UserRegisterRequest req) {
+    public RestResult<String> userRegister(@Valid @RequestBody UserRegisterRequest req) {
         return res(() -> userService.createUser(req), "创建用户异常");
     }
 
 
     @GetMapping("/user")
-    public RestResult findUser() {
-        return res(() -> RestResultBuilder.success().data(findUserModel()), "查询用户异常");
+    public RestResult<UserModel> findUser() {
+        return res(() -> RestResultBuilder.<UserModel>success().data(findUserModel()), "查询用户异常");
     }
 }

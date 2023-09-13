@@ -1,10 +1,15 @@
 package com.zwy.monitor.service;
 
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.zwy.monitor.bean.dbBean.UserMovie;
+import com.zwy.monitor.common.PageInfo;
 import com.zwy.monitor.common.RestResult;
-import com.zwy.monitor.web.request.movie.CheckUploadRequest;
-import com.zwy.monitor.web.request.movie.RenameMovieRequest;
-import com.zwy.monitor.web.request.movie.UploadSplitRequest;
+import com.zwy.monitor.web.request.movie.*;
 import com.zwy.monitor.web.response.movie.CheckExistsResponse;
+import com.zwy.monitor.web.response.movie.FindUserMovieResponse;
+
+import javax.servlet.http.HttpServletResponse;
+import java.util.List;
 
 /**
  * @author zwy
@@ -17,4 +22,10 @@ public interface MovieService {
     RestResult<String> uploadSplit(UploadSplitRequest req);
 
     RestResult<String> rename(RenameMovieRequest req);
+
+    RestResult<PageInfo> findPage(FindUserMovieRequest req);
+
+    RestResult<String> updateTag(UpdateTagRequest req);
+
+    void findHls(String id, String fileName, HttpServletResponse response);
 }

@@ -22,15 +22,10 @@ public interface UserBeanManager {
      * @param req req
      * @return com.example.myfile.bean.User 
      */
+    @Mapping(target = "updateTime", ignore = true)
+    @Mapping(target = "roleId", ignore = true)
+    @Mapping(target = "createTime", ignore = true)
     @Mapping(target = "id", ignore = true)
     User toUser(UserLoginRequest req);
 
-    /**
-     *  内部bean转换
-     * @author zwy
-     * @date 2022/4/18 0018 13:31
-     * @param user user
-     * @return com.example.myfile.bean.User
-     */
-    UserModel toUserModel(User user);
 }
